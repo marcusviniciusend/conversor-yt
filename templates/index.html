@@ -15,6 +15,7 @@
     --linha:   #28313f;
     --tinta:   #e8ebf2;
     --apagado: #8b95a8;
+    --fraco:   #5f6a7d;
     --ambar:   #f2a33c;
     --menta:   #58d3a6;
     --rosa:    #e8697d;
@@ -39,10 +40,20 @@
     line-height: 1.5;
     display: flex;
     justify-content: center;
-    padding: clamp(20px, 6vw, 72px) 18px 64px;
+    padding: clamp(20px, 6vw, 72px) 18px 72px;
   }
 
   .deck { width: 100%; max-width: 680px; }
+
+  .so-leitor {
+    position: absolute;
+    width: 1px; height: 1px;
+    margin: -1px; padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
 
   /* ---- placa de identificação ---- */
   .placa {
@@ -98,12 +109,26 @@
     background: var(--rosa);
     box-shadow: 0 0 10px 1px rgba(232, 105, 125, .5);
   }
+  .lampada[data-estado="cancelado"]::before { background: var(--gelo); }
   @keyframes pulsa { 50% { opacity: .35; } }
 
   /* ---- área de entrada ---- */
   form { margin: 26px 0 0; }
 
-  label.campo { display: block; font-size: 14px; color: var(--apagado); margin-bottom: 9px; }
+  .rotulo {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 9px;
+  }
+  .rotulo label { font-size: 14px; color: var(--apagado); }
+  .contagem {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--fraco);
+    font-variant-numeric: tabular-nums;
+  }
 
   textarea {
     width: 100%;
@@ -130,6 +155,7 @@
     flex-wrap: wrap;
     margin-top: 18px;
   }
+  .direita { display: flex; align-items: center; gap: 12px; }
 
   /* interruptor de formato */
   .chave {
@@ -152,12 +178,21 @@
     cursor: pointer;
     transition: color .18s, background .18s;
   }
+  .chave span small {
+    display: block;
+    font-family: var(--sans);
+    font-size: 10.5px;
+    font-weight: 400;
+    color: var(--fraco);
+    letter-spacing: .01em;
+  }
   .chave span:hover { color: var(--tinta); }
   .chave input:checked + span {
     background: var(--painel);
     color: var(--tinta);
     box-shadow: 0 1px 0 rgba(255, 255, 255, .06) inset, 0 2px 6px rgba(0, 0, 0, .4);
   }
+  .chave input:checked + span small { color: var(--apagado); }
   .chave input:focus-visible + span { outline: 2px solid var(--ambar); outline-offset: 2px; }
 
   button {
@@ -171,21 +206,44 @@
     font-weight: 600;
     letter-spacing: -0.01em;
     cursor: pointer;
-    transition: filter .18s, transform .08s;
+    transition: filter .18s, transform .08s, border-color .18s, color .18s;
   }
   button:hover { filter: brightness(1.08); }
   button:active { transform: translateY(1px); }
-  button[disabled] { background: var(--linha); color: var(--apagado); cursor: progress; filter: none; }
+  button[disabled] { background: var(--linha); color: var(--apagado); cursor: not-allowed; filter: none; }
+
+  button.fantasma {
+    padding: 10px 18px;
+    background: transparent;
+    border: 1px solid var(--linha);
+    color: var(--apagado);
+    font-size: 13.5px;
+    font-weight: 400;
+  }
+  button.fantasma:hover { filter: none; color: var(--tinta); border-color: #3c4a60; }
+  button.fantasma[disabled] { background: transparent; color: var(--fraco); }
+
+  .atalho {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--fraco);
+    white-space: nowrap;
+  }
 
   :focus-visible { outline: 2px solid var(--ambar); outline-offset: 3px; }
 
   .destino {
-    margin: 14px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 16px 0 0;
     font-family: var(--mono);
     font-size: 12px;
-    color: #5f6a7d;
-    word-break: break-all;
+    color: var(--fraco);
   }
+  .destino #caminho { overflow-wrap: anywhere; }
+  button.pequeno { padding: 6px 12px; font-size: 12px; border-radius: 7px; }
 
   .aviso {
     margin-top: 18px;
@@ -199,7 +257,7 @@
   .aviso[hidden] { display: none; }
 
   /* ---- medidor + fila ---- */
-  .fila { margin-top: 34px; }
+  .fila { margin-top: 36px; }
   .fila[hidden] { display: none; }
 
   .leitura {
@@ -209,7 +267,7 @@
     gap: 14px;
     margin-bottom: 11px;
   }
-  .leitura .onde { font-size: 15px; color: var(--apagado); }
+  .leitura .onde { font-size: 15px; color: var(--apagado); overflow-wrap: anywhere; }
   .leitura .pct { font-family: var(--mono); font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
 
   .medidor {
@@ -233,17 +291,21 @@
     box-shadow: 0 0 7px rgba(242, 163, 60, .45);
   }
   .medidor.pronto i.on { background: var(--menta); box-shadow: 0 0 7px rgba(88, 211, 166, .4); }
+  .medidor.parado i.on { background: var(--gelo); box-shadow: none; }
+  .medidor.falhou i.on { background: var(--rosa); box-shadow: 0 0 7px rgba(232, 105, 125, .4); }
 
   .resumo {
     display: flex;
     gap: 22px;
     flex-wrap: wrap;
-    margin-top: 13px;
+    margin: 13px 0 0;
     font-family: var(--mono);
     font-size: 12.5px;
     color: var(--apagado);
   }
   .resumo b { font-weight: 500; color: var(--tinta); }
+  .resumo span[data-zero="sim"] { color: var(--fraco); }
+  .resumo span[data-zero="sim"] b { color: var(--fraco); }
 
   ul.itens { list-style: none; margin: 22px 0 0; padding: 0; }
   ul.itens li {
@@ -259,21 +321,35 @@
   .titulo { font-size: 15px; overflow-wrap: anywhere; }
   .lado { font-family: var(--mono); font-size: 12px; color: var(--apagado); font-variant-numeric: tabular-nums; }
   .nota { grid-column: 2 / -1; font-size: 13px; color: var(--apagado); overflow-wrap: anywhere; }
+  .nota:empty { display: none; }
 
   li[data-estado="pendente"] .titulo { color: var(--apagado); }
   li[data-estado="pendente"] .marca { color: #39424f; }
   li[data-estado="baixando"] .marca { color: var(--ambar); }
   li[data-estado="ok"] .marca { color: var(--menta); }
   li[data-estado="pulado"] .marca { color: var(--gelo); }
+  li[data-estado="cancelado"] .marca { color: var(--fraco); }
+  li[data-estado="cancelado"] .titulo { color: var(--apagado); }
   li[data-estado="erro"] .marca { color: var(--rosa); }
   li[data-estado="erro"] .nota { color: #f0a9b4; }
+
+  .acoes {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+  }
+  .acoes[hidden] { display: none; }
 
   @media (max-width: 560px) {
     .placa { flex-direction: column; gap: 14px; }
     .controles { flex-direction: column; align-items: stretch; }
+    .direita { flex-direction: column; align-items: stretch; }
+    .atalho { display: none; }
     .chave { justify-content: center; }
     .chave span { flex: 1; text-align: center; }
     .leitura .pct { font-size: 19px; }
+    .acoes button { flex: 1; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -292,7 +368,10 @@
   </header>
 
   <form id="forma" novalidate>
-    <label class="campo" for="links">Links do YouTube</label>
+    <div class="rotulo">
+      <label for="links">Links do YouTube</label>
+      <span class="contagem" id="contagem">nenhum link ainda</span>
+    </div>
     <textarea id="links" name="links" spellcheck="false"
       placeholder="https://www.youtube.com/watch?v=...&#10;https://youtu.be/..."></textarea>
 
@@ -300,21 +379,29 @@
       <div class="chave" role="radiogroup" aria-label="Formato de saída">
         <label>
           <input type="radio" name="formato" value="mp3" checked>
-          <span>MP3</span>
+          <span>MP3 <small>só o áudio</small></span>
         </label>
         <label>
           <input type="radio" name="formato" value="mp4">
-          <span>MP4</span>
+          <span>MP4 <small>vídeo completo</small></span>
         </label>
       </div>
-      <button type="submit" id="botao">Baixar</button>
+      <div class="direita">
+        <span class="atalho">Ctrl + Enter</span>
+        <button type="submit" id="botao">Baixar</button>
+      </div>
     </div>
 
-    <p class="destino">Os arquivos vão para {{ pasta }}</p>
+    <p class="destino">
+      <span id="caminho">{{ pasta }}</span>
+      <button type="button" class="fantasma pequeno" id="abrir">Abrir a pasta</button>
+    </p>
     <p class="aviso" id="aviso" role="alert" hidden></p>
   </form>
 
-  <section class="fila" id="fila" hidden aria-live="polite">
+  <p class="so-leitor" id="locutor" role="status" aria-live="polite"></p>
+
+  <section class="fila" id="fila" hidden>
     <div class="leitura">
       <span class="onde" id="onde">Preparando a fila</span>
       <span class="pct" id="pct">0%</span>
@@ -322,7 +409,11 @@
     <div class="medidor" id="medidor" role="progressbar" aria-label="Progresso da fila"
          aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
     <p class="resumo" id="resumo"></p>
-    <ul class="itens" id="itens"></ul>
+    <ul class="itens" id="itens" aria-label="Itens da fila"></ul>
+    <div class="acoes" id="acoes" hidden>
+      <button type="button" class="fantasma" id="parar">Parar a fila</button>
+      <button type="button" class="fantasma" id="repetir" hidden>Tentar de novo os que falharam</button>
+    </div>
   </section>
 </main>
 
@@ -331,29 +422,40 @@
   "use strict";
 
   const SEGMENTOS = 36;
-  const forma = document.getElementById("forma");
-  const campoLinks = document.getElementById("links");
-  const botao = document.getElementById("botao");
-  const aviso = document.getElementById("aviso");
-  const lampada = document.getElementById("lampada");
-  const fila = document.getElementById("fila");
-  const onde = document.getElementById("onde");
-  const pct = document.getElementById("pct");
-  const medidor = document.getElementById("medidor");
-  const resumo = document.getElementById("resumo");
-  const itens = document.getElementById("itens");
+  const TITULO = "conversor-yt";
+  const MARCAS = { pendente: "·", baixando: "▸", ok: "✓", pulado: "≡", erro: "✕", cancelado: "—" };
+  const ROTULOS = {
+    pendente: "na fila", baixando: "baixando", ok: "pronto",
+    pulado: "pulado", erro: "erro", cancelado: "parado"
+  };
 
-  const MARCAS = { pendente: "·", baixando: "▸", ok: "✓", pulado: "≡", erro: "✕" };
-  const ROTULOS = { pendente: "na fila", baixando: "baixando", ok: "pronto", pulado: "pulado", erro: "erro" };
+  const $ = (id) => document.getElementById(id);
+  const forma = $("forma"), campoLinks = $("links"), botao = $("botao");
+  const contagem = $("contagem"), aviso = $("aviso"), lampada = $("lampada");
+  const locutor = $("locutor"), fila = $("fila"), onde = $("onde"), pct = $("pct");
+  const medidor = $("medidor"), resumo = $("resumo"), itens = $("itens");
+  const acoes = $("acoes"), parar = $("parar"), repetir = $("repetir"), abrir = $("abrir");
 
   for (let i = 0; i < SEGMENTOS; i++) medidor.appendChild(document.createElement("i"));
   const barras = medidor.querySelectorAll("i");
 
   let timer = null;
+  let jobAtual = null;
+  let linhas = [];        // elementos da lista, reaproveitados entre as consultas
+  let ultimoAnuncio = "";
+
+  /* ---------- utilidades de tela ---------- */
 
   function lampadaEm(estado, texto) {
     lampada.dataset.estado = estado;
     lampada.textContent = texto;
+  }
+
+  function anuncia(texto) {
+    if (texto !== ultimoAnuncio) {
+      ultimoAnuncio = texto;
+      locutor.textContent = texto;
+    }
   }
 
   function mostraAviso(texto) {
@@ -366,56 +468,100 @@
     aviso.textContent = "";
   }
 
-  function pintaMedidor(valor, pronto) {
+  function pintaMedidor(valor, classe) {
     const acesos = Math.round((valor / 100) * SEGMENTOS);
     barras.forEach((b, i) => b.classList.toggle("on", i < acesos));
-    medidor.classList.toggle("pronto", Boolean(pronto));
+    medidor.classList.toggle("pronto", classe === "pronto");
+    medidor.classList.toggle("parado", classe === "parado");
+    medidor.classList.toggle("falhou", classe === "falhou");
     medidor.setAttribute("aria-valuenow", String(Math.round(valor)));
   }
 
-  function linhaItem(item, indice) {
-    const li = document.createElement("li");
-    li.dataset.estado = item.estado;
+  function contaLinks() {
+    const total = campoLinks.value.split("\n").filter(l => l.trim()).length;
+    contagem.textContent = total === 0 ? "nenhum link ainda"
+      : total === 1 ? "1 link" : total + " links";
+  }
 
-    const marca = document.createElement("span");
-    marca.className = "marca";
-    marca.textContent = MARCAS[item.estado] || "·";
-    marca.setAttribute("aria-hidden", "true");
+  /* ---------- lista da fila ---------- */
 
-    const titulo = document.createElement("span");
-    titulo.className = "titulo";
-    titulo.textContent = item.titulo || item.link;
-
-    const lado = document.createElement("span");
-    lado.className = "lado";
-    lado.textContent = item.estado === "baixando"
-      ? item.percentual + "%"
-      : ROTULOS[item.estado] || item.estado;
-
-    li.append(marca, titulo, lado);
-
-    if (item.mensagem) {
+  function montaLinhas(total) {
+    itens.replaceChildren();
+    linhas = [];
+    for (let i = 0; i < total; i++) {
+      const li = document.createElement("li");
+      const marca = document.createElement("span");
+      marca.className = "marca";
+      marca.setAttribute("aria-hidden", "true");
+      const titulo = document.createElement("span");
+      titulo.className = "titulo";
+      const lado = document.createElement("span");
+      lado.className = "lado";
       const nota = document.createElement("span");
       nota.className = "nota";
-      nota.textContent = item.mensagem;
-      li.appendChild(nota);
+      li.append(marca, titulo, lado, nota);
+      itens.appendChild(li);
+      linhas.push({ li, marca, titulo, lado, nota });
     }
-    li.dataset.indice = String(indice);
-    return li;
   }
+
+  function atualizaLinha(item, indice) {
+    const alvo = linhas[indice];
+    if (!alvo) return;
+    const marca = MARCAS[item.estado] || "·";
+    const titulo = item.titulo || item.link;
+    const lado = item.estado === "baixando" ? item.percentual + "%"
+      : (ROTULOS[item.estado] || item.estado);
+
+    if (alvo.li.dataset.estado !== item.estado) alvo.li.dataset.estado = item.estado;
+    if (alvo.marca.textContent !== marca) alvo.marca.textContent = marca;
+    if (alvo.titulo.textContent !== titulo) alvo.titulo.textContent = titulo;
+    if (alvo.lado.textContent !== lado) alvo.lado.textContent = lado;
+    if (alvo.nota.textContent !== (item.mensagem || "")) alvo.nota.textContent = item.mensagem || "";
+  }
+
+  function escreveResumo(tarefa) {
+    const partes = [
+      ["sucessos", "pronto", "prontos"], ["falhas", "falha", "falhas"],
+      ["pulados", "pulado", "pulados"], ["repetidos", "repetido", "repetidos"]
+    ].filter(([chave]) => chave !== "repetidos" || tarefa.repetidos > 0);
+
+    resumo.replaceChildren();
+    partes.forEach(([chave, um, varios]) => {
+      const valor = tarefa[chave];
+      const bloco = document.createElement("span");
+      bloco.dataset.zero = valor === 0 ? "sim" : "nao";
+      const num = document.createElement("b");
+      num.textContent = String(valor);
+      bloco.append(num, document.createTextNode(" " + (valor === 1 ? um : varios)));
+      resumo.appendChild(bloco);
+    });
+  }
+
+  /* ---------- ciclo de vida da fila ---------- */
 
   function desenha(tarefa) {
     const total = tarefa.total || 1;
-    const feitos = tarefa.itens.filter(i => i.estado !== "pendente" && i.estado !== "baixando").length;
+    const terminou = tarefa.estado === "concluido" || tarefa.estado === "cancelado";
+    const parados = ["pendente", "baixando"];
+    const feitos = tarefa.itens.filter(i => !parados.includes(i.estado)).length;
     const emCurso = tarefa.itens.find(i => i.estado === "baixando");
     const parcial = emCurso ? emCurso.percentual / 100 : 0;
     const geral = Math.min(100, ((feitos + parcial) / total) * 100);
-    const concluido = tarefa.estado === "concluido";
+    const arredondado = Math.round(geral);
 
-    pct.textContent = Math.round(geral) + "%";
-    pintaMedidor(geral, concluido && tarefa.falhas === 0);
+    pct.textContent = arredondado + "%";
+    pintaMedidor(geral,
+      tarefa.estado === "cancelado" ? "parado"
+        : !terminou ? ""
+          : tarefa.falhas > 0 ? "falhou" : "pronto");
 
-    if (concluido) {
+    tarefa.itens.forEach(atualizaLinha);
+    escreveResumo(tarefa);
+
+    if (tarefa.estado === "cancelado") {
+      onde.textContent = "Fila parada em " + feitos + " de " + total;
+    } else if (terminou) {
       onde.textContent = "Fila encerrada";
     } else if (emCurso) {
       onde.textContent = "Item " + tarefa.atual + " de " + total + ": " + (emCurso.titulo || emCurso.link);
@@ -423,28 +569,35 @@
       onde.textContent = "Item " + Math.max(1, tarefa.atual) + " de " + total;
     }
 
-    resumo.replaceChildren();
-    [["sucessos", "prontos"], ["falhas", "falhas"], ["pulados", "pulados"]].forEach(([chave, texto]) => {
-      const bloco = document.createElement("span");
-      const num = document.createElement("b");
-      num.textContent = String(tarefa[chave]);
-      bloco.append(num, document.createTextNode(" " + texto));
-      resumo.appendChild(bloco);
-    });
+    const falhados = tarefa.itens.filter(i => i.estado === "erro");
+    repetir.hidden = falhados.length === 0;
+    repetir.textContent = "Tentar de novo " +
+      (falhados.length === 1 ? "o link que falhou" : "os " + falhados.length + " que falharam");
+    repetir.dataset.links = falhados.map(i => i.link).join("\n");
 
-    itens.replaceChildren(...tarefa.itens.map(linhaItem));
-
-    if (concluido) {
-      const falhou = tarefa.falhas > 0;
-      lampadaEm(falhou ? "erro" : "concluido",
-        falhou ? tarefa.falhas + " com falha" : "tudo pronto");
+    if (terminou) {
+      document.title = TITULO;
+      parar.hidden = true;
       botao.disabled = false;
       botao.textContent = "Baixar";
-      if (falhou) {
-        mostraAviso("Alguns links não baixaram. Veja o motivo na lista; se o YouTube mudou, atualize o yt-dlp com: pip install -U yt-dlp");
+
+      if (tarefa.estado === "cancelado") {
+        lampadaEm("cancelado", "parado");
+        anuncia("Fila parada. " + tarefa.sucessos + " prontos.");
+      } else if (tarefa.falhas > 0) {
+        lampadaEm("erro", tarefa.falhas + (tarefa.falhas === 1 ? " com falha" : " com falhas"));
+        anuncia("Fila encerrada com " + tarefa.falhas +
+          (tarefa.falhas === 1 ? " falha" : " falhas") + " e " + tarefa.sucessos + " prontos.");
+        mostraAviso("Alguns links não baixaram — o motivo está em cada linha. Se o YouTube mudou algo, atualize o yt-dlp com: pip install -U yt-dlp");
+      } else {
+        lampadaEm("concluido", "tudo pronto");
+        anuncia("Fila encerrada. " + tarefa.sucessos + " prontos.");
       }
     } else {
+      document.title = TITULO + " — " + arredondado + "%";
+      parar.hidden = false;
       lampadaEm("rodando", "baixando " + tarefa.atual + "/" + total);
+      anuncia("Item " + tarefa.atual + " de " + total + ", " + arredondado + " por cento.");
     }
   }
 
@@ -452,25 +605,27 @@
     const resposta = await fetch("/status/" + encodeURIComponent(jobId));
     const dados = await resposta.json();
     if (!resposta.ok) throw new Error(dados.erro || "Não foi possível ler o progresso.");
+    if (jobId !== jobAtual) return;
     desenha(dados);
-    if (dados.estado !== "concluido") {
+    if (dados.estado === "rodando") {
       timer = setTimeout(() => consulta(jobId).catch(falhou), 800);
     }
   }
 
   function falhou(erro) {
+    document.title = TITULO;
     lampadaEm("erro", "parado");
+    parar.hidden = true;
     botao.disabled = false;
     botao.textContent = "Baixar";
     mostraAviso(erro.message || "Algo deu errado ao falar com o servidor.");
   }
 
-  forma.addEventListener("submit", async (evento) => {
-    evento.preventDefault();
+  async function envia(texto) {
     limpaAviso();
     if (timer) { clearTimeout(timer); timer = null; }
 
-    const links = campoLinks.value.trim();
+    const links = texto.trim();
     if (!links) {
       mostraAviso("Cole pelo menos um link do YouTube para começar.");
       campoLinks.focus();
@@ -491,17 +646,84 @@
       const dados = await resposta.json();
       if (!resposta.ok) throw new Error(dados.erro || "O servidor recusou o pedido.");
 
+      jobAtual = dados.job_id;
       fila.hidden = false;
+      acoes.hidden = false;
+      parar.hidden = false;
+      repetir.hidden = true;
       onde.textContent = "Preparando a fila";
       pct.textContent = "0%";
-      pintaMedidor(0, false);
+      pintaMedidor(0, "");
       resumo.replaceChildren();
-      itens.replaceChildren();
+      montaLinhas(dados.total);
+      fila.scrollIntoView({ behavior: "smooth", block: "nearest" });
       await consulta(dados.job_id);
     } catch (erro) {
       falhou(erro);
     }
+  }
+
+  /* ---------- eventos ---------- */
+
+  forma.addEventListener("submit", (evento) => {
+    evento.preventDefault();
+    envia(campoLinks.value);
   });
+
+  campoLinks.addEventListener("input", contaLinks);
+
+  campoLinks.addEventListener("keydown", (evento) => {
+    if ((evento.ctrlKey || evento.metaKey) && evento.key === "Enter") {
+      evento.preventDefault();
+      forma.requestSubmit();
+    }
+  });
+
+  parar.addEventListener("click", async () => {
+    if (!jobAtual) return;
+    parar.disabled = true;
+    parar.textContent = "Parando";
+    try {
+      await fetch("/cancelar/" + encodeURIComponent(jobAtual), { method: "POST" });
+    } catch (erro) {
+      mostraAviso("Não consegui avisar o servidor para parar.");
+    } finally {
+      parar.disabled = false;
+      parar.textContent = "Parar a fila";
+    }
+  });
+
+  repetir.addEventListener("click", () => {
+    const links = repetir.dataset.links || "";
+    if (!links) return;
+    campoLinks.value = links;
+    contaLinks();
+    envia(links);
+  });
+
+  abrir.addEventListener("click", async () => {
+    try {
+      const resposta = await fetch("/abrir-pasta", { method: "POST" });
+      const dados = await resposta.json();
+      if (!resposta.ok) throw new Error(dados.erro);
+    } catch (erro) {
+      mostraAviso(erro.message || "Não consegui abrir a pasta dos downloads.");
+    }
+  });
+
+  /* lembra o formato escolhido entre as sessões */
+  const salvo = localStorage.getItem("conversor-yt:formato");
+  if (salvo === "mp3" || salvo === "mp4") {
+    const alvo = forma.querySelector('input[value="' + salvo + '"]');
+    if (alvo) alvo.checked = true;
+  }
+  forma.querySelectorAll('input[name="formato"]').forEach(radio => {
+    radio.addEventListener("change", () => {
+      localStorage.setItem("conversor-yt:formato", radio.value);
+    });
+  });
+
+  contaLinks();
 })();
 </script>
 </body>

@@ -54,6 +54,17 @@ python app.py
 Abra `http://127.0.0.1:5000` no navegador. Cole os links, escolha MP3 ou MP4 e clique
 em **Baixar**. Para encerrar o servidor, use `Ctrl + C` no terminal.
 
+## Na interface
+
+- **Contador de links** ao lado do rótulo, atualizado enquanto você cola.
+- **Ctrl + Enter** envia a fila sem tirar a mão do teclado.
+- O formato escolhido (MP3 ou MP4) fica **lembrado** para a próxima vez.
+- **Parar a fila** interrompe o download em curso e marca o resto como parado.
+- **Tentar de novo os que falharam** reenvia só os links que deram erro.
+- **Abrir a pasta** chama o explorador de arquivos do sistema em `~/Music/conversor-yt`.
+- Links repetidos na mesma fila são removidos e contados como *repetidos*.
+- O título da aba mostra o progresso, útil quando a janela fica em segundo plano.
+
 ## Observações
 
 - **noplaylist**: links de Mix ou de playlist baixam **somente o vídeo indicado** na URL,
@@ -65,6 +76,8 @@ em **Baixar**. Para encerrar o servidor, use `Ctrl + C` no terminal.
   (`preferredquality: 0`). **MP4**: melhor vídeo mp4 + melhor áudio m4a, mesclados em mp4.
 - Os downloads rodam em uma thread de background; o front-end consulta `/status/<job_id>`
   a cada 800 ms. Um link com erro não interrompe os demais da fila.
+- Rotas disponíveis: `POST /baixar`, `GET /status/<job_id>`, `POST /cancelar/<job_id>`
+  e `POST /abrir-pasta`.
 - **Quando o YouTube quebrar** (erros de formato indisponível, assinatura ou
   `nsig extraction failed`), o conserto quase sempre é atualizar o yt-dlp:
 

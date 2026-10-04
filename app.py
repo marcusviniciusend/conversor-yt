@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import copy
+import os
+import platform
 import re
+import subprocess
 import threading
 import uuid
 from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request
 from yt_dlp import YoutubeDL
-from yt_dlp.utils import DownloadError
 
 PASTA_SAIDA = Path.home() / "Music" / "conversor-yt"
 ARQUIVO_ARCHIVE = PASTA_SAIDA / "baixados.txt"
@@ -18,9 +20,15 @@ FORMATOS = ("mp3", "mp4")
 ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
 app = Flask(__name__)
+app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 _tarefas: dict[str, dict] = {}
+_cancelamentos: dict[str, threading.Event] = {}
 _trava = threading.Lock()
+
+
+class Cancelado(Exception):
+    """Levantada dentro do progress hook para interromper o download em curso."""
 
 
 def _atualiza(job_id: str, **campos) -> None:
@@ -83,11 +91,11 @@ def _opcoes_ydl(formato: str, hook) -> dict:
 def _video_unico(info: dict | None) -> dict:
     """Com noplaylist um link de Mix ainda pode voltar como playlist; pega o primeiro."""
     if not info:
-        raise DownloadError("O yt-dlp não encontrou nenhum vídeo nesse link.")
+        raise RuntimeError("O yt-dlp não encontrou nenhum vídeo nesse link.")
     if info.get("_type") == "playlist":
         entradas = [e for e in (info.get("entries") or []) if e]
         if not entradas:
-            raise DownloadError("A playlist não trouxe nenhum vídeo.")
+            raise RuntimeError("A playlist não trouxe nenhum vídeo.")
         return entradas[0]
     return info
 
@@ -103,19 +111,33 @@ def _limpa_erro(texto: str) -> str:
 
 def _processa(job_id: str, links: list[str], formato: str) -> None:
     PASTA_SAIDA.mkdir(parents=True, exist_ok=True)
+    parar = _cancelamentos[job_id]
 
     for indice, link in enumerate(links):
+        if parar.is_set():
+            _atualiza_item(
+                job_id, indice, estado="cancelado", mensagem="A fila foi interrompida"
+            )
+            continue
+
         _atualiza(job_id, atual=indice + 1)
         _atualiza_item(job_id, indice, estado="baixando", percentual=0, mensagem="")
 
         def hook(d, indice=indice):
+            if parar.is_set():
+                raise Cancelado
             situacao = d.get("status")
             if situacao == "downloading":
                 baixado = d.get("downloaded_bytes") or 0
                 total = d.get("total_bytes") or d.get("total_bytes_estimate") or 0
+                velocidade = d.get("speed")
+                campos: dict = {}
                 if total:
-                    pct = max(0, min(100, int(baixado * 100 / total)))
-                    _atualiza_item(job_id, indice, percentual=pct)
+                    campos["percentual"] = max(0, min(100, int(baixado * 100 / total)))
+                if velocidade:
+                    campos["mensagem"] = f"{velocidade / 1_048_576:.1f} MB/s"
+                if campos:
+                    _atualiza_item(job_id, indice, **campos)
             elif situacao == "finished":
                 _atualiza_item(
                     job_id, indice, percentual=100, mensagem="Convertendo com ffmpeg"
@@ -138,7 +160,24 @@ def _processa(job_id: str, links: list[str], formato: str) -> None:
                     continue
 
                 ydl.download([link])
+        except Cancelado:
+            _atualiza_item(
+                job_id,
+                indice,
+                estado="cancelado",
+                percentual=0,
+                mensagem="A fila foi interrompida",
+            )
         except Exception as erro:  # noqa: BLE001 — um link ruim não derruba a fila
+            if parar.is_set():
+                _atualiza_item(
+                    job_id,
+                    indice,
+                    estado="cancelado",
+                    percentual=0,
+                    mensagem="A fila foi interrompida",
+                )
+                continue
             _atualiza_item(
                 job_id,
                 indice,
@@ -153,11 +192,11 @@ def _processa(job_id: str, links: list[str], formato: str) -> None:
                 indice,
                 estado="ok",
                 percentual=100,
-                mensagem=f"Salvo em {PASTA_SAIDA}",
+                mensagem=f"Salvo como {formato.upper()}",
             )
             _soma(job_id, "sucessos")
 
-    _atualiza(job_id, estado="concluido")
+    _atualiza(job_id, estado="cancelado" if parar.is_set() else "concluido")
 
 
 @app.get("/")
@@ -178,11 +217,16 @@ def baixar():
 
     links: list[str] = []
     vistos: set[str] = set()
+    repetidos = 0
     for linha in bruto.splitlines():
         linha = linha.strip()
-        if linha and linha not in vistos:
-            vistos.add(linha)
-            links.append(linha)
+        if not linha:
+            continue
+        if linha in vistos:
+            repetidos += 1
+            continue
+        vistos.add(linha)
+        links.append(linha)
 
     if not links:
         return jsonify(erro="Cole pelo menos um link do YouTube para começar."), 400
@@ -194,6 +238,7 @@ def baixar():
 
     job_id = uuid.uuid4().hex
     with _trava:
+        _cancelamentos[job_id] = threading.Event()
         _tarefas[job_id] = {
             "estado": "rodando",
             "formato": formato,
@@ -202,6 +247,7 @@ def baixar():
             "sucessos": 0,
             "falhas": 0,
             "pulados": 0,
+            "repetidos": repetidos,
             "pasta": str(PASTA_SAIDA),
             "itens": [
                 {
@@ -216,7 +262,7 @@ def baixar():
         }
 
     threading.Thread(target=_processa, args=(job_id, links, formato), daemon=True).start()
-    return jsonify(job_id=job_id, total=len(links))
+    return jsonify(job_id=job_id, total=len(links), repetidos=repetidos)
 
 
 @app.get("/status/<job_id>")
@@ -226,6 +272,33 @@ def status(job_id: str):
         if tarefa is None:
             return jsonify(erro="Essa fila não existe mais. Envie os links de novo."), 404
         return jsonify(copy.deepcopy(tarefa))
+
+
+@app.post("/cancelar/<job_id>")
+def cancelar(job_id: str):
+    with _trava:
+        parar = _cancelamentos.get(job_id)
+        if parar is None:
+            return jsonify(erro="Essa fila não existe mais."), 404
+    parar.set()
+    return jsonify(ok=True)
+
+
+@app.post("/abrir-pasta")
+def abrir_pasta():
+    """Abre ~/Music/conversor-yt no explorador de arquivos do sistema."""
+    PASTA_SAIDA.mkdir(parents=True, exist_ok=True)
+    try:
+        sistema = platform.system()
+        if sistema == "Windows":
+            os.startfile(PASTA_SAIDA)  # noqa: S606 — caminho fixo, app só local
+        elif sistema == "Darwin":
+            subprocess.Popen(["open", str(PASTA_SAIDA)])
+        else:
+            subprocess.Popen(["xdg-open", str(PASTA_SAIDA)])
+    except Exception as erro:  # noqa: BLE001
+        return jsonify(erro=f"Não consegui abrir a pasta: {_limpa_erro(str(erro))}"), 500
+    return jsonify(ok=True, pasta=str(PASTA_SAIDA))
 
 
 if __name__ == "__main__":

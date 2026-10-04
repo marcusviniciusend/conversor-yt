@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>conversor-yt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --chao:    #0e1116;
+    --painel:  #181d27;
+    --fundo:   #0a0d12;
+    --linha:   #28313f;
+    --tinta:   #e8ebf2;
+    --apagado: #8b95a8;
+    --ambar:   #f2a33c;
+    --menta:   #58d3a6;
+    --rosa:    #e8697d;
+    --gelo:    #7fa7d9;
+    --sans: "Archivo", "Segoe UI", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(120% 80% at 50% -20%, #1a2130 0%, transparent 60%),
+      var(--chao);
+    color: var(--tinta);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.5;
+    display: flex;
+    justify-content: center;
+    padding: clamp(20px, 6vw, 72px) 18px 64px;
+  }
+
+  .deck { width: 100%; max-width: 680px; }
+
+  /* ---- placa de identificação ---- */
+  .placa {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--linha);
+  }
+  .placa h1 {
+    margin: 0;
+    font-size: clamp(30px, 6vw, 42px);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1;
+  }
+  .placa p {
+    margin: 10px 0 0;
+    max-width: 44ch;
+    color: var(--apagado);
+    font-size: 15px;
+  }
+  .lampada {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-top: 6px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--apagado);
+    white-space: nowrap;
+  }
+  .lampada::before {
+    content: "";
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: var(--linha);
+    box-shadow: 0 0 0 3px rgba(40, 49, 63, .35);
+    transition: background .25s, box-shadow .25s;
+  }
+  .lampada[data-estado="rodando"]::before {
+    background: var(--ambar);
+    box-shadow: 0 0 10px 1px rgba(242, 163, 60, .55);
+    animation: pulsa 1.4s ease-in-out infinite;
+  }
+  .lampada[data-estado="concluido"]::before {
+    background: var(--menta);
+    box-shadow: 0 0 10px 1px rgba(88, 211, 166, .5);
+  }
+  .lampada[data-estado="erro"]::before {
+    background: var(--rosa);
+    box-shadow: 0 0 10px 1px rgba(232, 105, 125, .5);
+  }
+  @keyframes pulsa { 50% { opacity: .35; } }
+
+  /* ---- área de entrada ---- */
+  form { margin: 26px 0 0; }
+
+  label.campo { display: block; font-size: 14px; color: var(--apagado); margin-bottom: 9px; }
+
+  textarea {
+    width: 100%;
+    min-height: 148px;
+    resize: vertical;
+    padding: 16px 18px;
+    border: 1px solid var(--linha);
+    border-radius: 10px;
+    background: var(--fundo);
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, .45);
+    color: var(--tinta);
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.85;
+  }
+  textarea::placeholder { color: #566073; }
+  textarea:focus { border-color: #3c4a60; outline: none; }
+
+  .controles {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+
+  /* interruptor de formato */
+  .chave {
+    display: flex;
+    padding: 4px;
+    gap: 4px;
+    border: 1px solid var(--linha);
+    border-radius: 10px;
+    background: var(--fundo);
+  }
+  .chave input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .chave span {
+    display: block;
+    padding: 9px 22px;
+    border-radius: 7px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--apagado);
+    cursor: pointer;
+    transition: color .18s, background .18s;
+  }
+  .chave span:hover { color: var(--tinta); }
+  .chave input:checked + span {
+    background: var(--painel);
+    color: var(--tinta);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .06) inset, 0 2px 6px rgba(0, 0, 0, .4);
+  }
+  .chave input:focus-visible + span { outline: 2px solid var(--ambar); outline-offset: 2px; }
+
+  button {
+    padding: 12px 30px;
+    border: 0;
+    border-radius: 9px;
+    background: var(--ambar);
+    color: #1b1206;
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    transition: filter .18s, transform .08s;
+  }
+  button:hover { filter: brightness(1.08); }
+  button:active { transform: translateY(1px); }
+  button[disabled] { background: var(--linha); color: var(--apagado); cursor: progress; filter: none; }
+
+  :focus-visible { outline: 2px solid var(--ambar); outline-offset: 3px; }
+
+  .destino {
+    margin: 14px 0 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: #5f6a7d;
+    word-break: break-all;
+  }
+
+  .aviso {
+    margin-top: 18px;
+    padding: 13px 16px;
+    border-left: 3px solid var(--rosa);
+    border-radius: 0 8px 8px 0;
+    background: rgba(232, 105, 125, .09);
+    color: #f6c3cb;
+    font-size: 14.5px;
+  }
+  .aviso[hidden] { display: none; }
+
+  /* ---- medidor + fila ---- */
+  .fila { margin-top: 34px; }
+  .fila[hidden] { display: none; }
+
+  .leitura {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 11px;
+  }
+  .leitura .onde { font-size: 15px; color: var(--apagado); }
+  .leitura .pct { font-family: var(--mono); font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+  .medidor {
+    display: flex;
+    gap: 3px;
+    height: 26px;
+    padding: 5px;
+    border: 1px solid var(--linha);
+    border-radius: 7px;
+    background: var(--fundo);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, .5);
+  }
+  .medidor i {
+    flex: 1;
+    border-radius: 1.5px;
+    background: #1d2531;
+    transition: background .2s, box-shadow .2s;
+  }
+  .medidor i.on {
+    background: var(--ambar);
+    box-shadow: 0 0 7px rgba(242, 163, 60, .45);
+  }
+  .medidor.pronto i.on { background: var(--menta); box-shadow: 0 0 7px rgba(88, 211, 166, .4); }
+
+  .resumo {
+    display: flex;
+    gap: 22px;
+    flex-wrap: wrap;
+    margin-top: 13px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--apagado);
+  }
+  .resumo b { font-weight: 500; color: var(--tinta); }
+
+  ul.itens { list-style: none; margin: 22px 0 0; padding: 0; }
+  ul.itens li {
+    display: grid;
+    grid-template-columns: 18px 1fr auto;
+    gap: 4px 13px;
+    align-items: baseline;
+    padding: 13px 2px;
+    border-top: 1px solid var(--linha);
+  }
+  ul.itens li:last-child { border-bottom: 1px solid var(--linha); }
+  .marca { font-family: var(--mono); font-size: 13px; line-height: 1.4; }
+  .titulo { font-size: 15px; overflow-wrap: anywhere; }
+  .lado { font-family: var(--mono); font-size: 12px; color: var(--apagado); font-variant-numeric: tabular-nums; }
+  .nota { grid-column: 2 / -1; font-size: 13px; color: var(--apagado); overflow-wrap: anywhere; }
+
+  li[data-estado="pendente"] .titulo { color: var(--apagado); }
+  li[data-estado="pendente"] .marca { color: #39424f; }
+  li[data-estado="baixando"] .marca { color: var(--ambar); }
+  li[data-estado="ok"] .marca { color: var(--menta); }
+  li[data-estado="pulado"] .marca { color: var(--gelo); }
+  li[data-estado="erro"] .marca { color: var(--rosa); }
+  li[data-estado="erro"] .nota { color: #f0a9b4; }
+
+  @media (max-width: 560px) {
+    .placa { flex-direction: column; gap: 14px; }
+    .controles { flex-direction: column; align-items: stretch; }
+    .chave { justify-content: center; }
+    .chave span { flex: 1; text-align: center; }
+    .leitura .pct { font-size: 19px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<main class="deck">
+  <header class="placa">
+    <div>
+      <h1>conversor-yt</h1>
+      <p>Cole os links, escolha o formato e acompanhe a fila baixar. Um link por linha.</p>
+    </div>
+    <span class="lampada" id="lampada" data-estado="ocioso">ocioso</span>
+  </header>
+
+  <form id="forma" novalidate>
+    <label class="campo" for="links">Links do YouTube</label>
+    <textarea id="links" name="links" spellcheck="false"
+      placeholder="https://www.youtube.com/watch?v=...&#10;https://youtu.be/..."></textarea>
+
+    <div class="controles">
+      <div class="chave" role="radiogroup" aria-label="Formato de saída">
+        <label>
+          <input type="radio" name="formato" value="mp3" checked>
+          <span>MP3</span>
+        </label>
+        <label>
+          <input type="radio" name="formato" value="mp4">
+          <span>MP4</span>
+        </label>
+      </div>
+      <button type="submit" id="botao">Baixar</button>
+    </div>
+
+    <p class="destino">Os arquivos vão para {{ pasta }}</p>
+    <p class="aviso" id="aviso" role="alert" hidden></p>
+  </form>
+
+  <section class="fila" id="fila" hidden aria-live="polite">
+    <div class="leitura">
+      <span class="onde" id="onde">Preparando a fila</span>
+      <span class="pct" id="pct">0%</span>
+    </div>
+    <div class="medidor" id="medidor" role="progressbar" aria-label="Progresso da fila"
+         aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+    <p class="resumo" id="resumo"></p>
+    <ul class="itens" id="itens"></ul>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  const SEGMENTOS = 36;
+  const forma = document.getElementById("forma");
+  const campoLinks = document.getElementById("links");
+  const botao = document.getElementById("botao");
+  const aviso = document.getElementById("aviso");
+  const lampada = document.getElementById("lampada");
+  const fila = document.getElementById("fila");
+  const onde = document.getElementById("onde");
+  const pct = document.getElementById("pct");
+  const medidor = document.getElementById("medidor");
+  const resumo = document.getElementById("resumo");
+  const itens = document.getElementById("itens");
+
+  const MARCAS = { pendente: "·", baixando: "▸", ok: "✓", pulado: "≡", erro: "✕" };
+  const ROTULOS = { pendente: "na fila", baixando: "baixando", ok: "pronto", pulado: "pulado", erro: "erro" };
+
+  for (let i = 0; i < SEGMENTOS; i++) medidor.appendChild(document.createElement("i"));
+  const barras = medidor.querySelectorAll("i");
+
+  let timer = null;
+
+  function lampadaEm(estado, texto) {
+    lampada.dataset.estado = estado;
+    lampada.textContent = texto;
+  }
+
+  function mostraAviso(texto) {
+    aviso.textContent = texto;
+    aviso.hidden = false;
+  }
+
+  function limpaAviso() {
+    aviso.hidden = true;
+    aviso.textContent = "";
+  }
+
+  function pintaMedidor(valor, pronto) {
+    const acesos = Math.round((valor / 100) * SEGMENTOS);
+    barras.forEach((b, i) => b.classList.toggle("on", i < acesos));
+    medidor.classList.toggle("pronto", Boolean(pronto));
+    medidor.setAttribute("aria-valuenow", String(Math.round(valor)));
+  }
+
+  function linhaItem(item, indice) {
+    const li = document.createElement("li");
+    li.dataset.estado = item.estado;
+
+    const marca = document.createElement("span");
+    marca.className = "marca";
+    marca.textContent = MARCAS[item.estado] || "·";
+    marca.setAttribute("aria-hidden", "true");
+
+    const titulo = document.createElement("span");
+    titulo.className = "titulo";
+    titulo.textContent = item.titulo || item.link;
+
+    const lado = document.createElement("span");
+    lado.className = "lado";
+    lado.textContent = item.estado === "baixando"
+      ? item.percentual + "%"
+      : ROTULOS[item.estado] || item.estado;
+
+    li.append(marca, titulo, lado);
+
+    if (item.mensagem) {
+      const nota = document.createElement("span");
+      nota.className = "nota";
+      nota.textContent = item.mensagem;
+      li.appendChild(nota);
+    }
+    li.dataset.indice = String(indice);
+    return li;
+  }
+
+  function desenha(tarefa) {
+    const total = tarefa.total || 1;
+    const feitos = tarefa.itens.filter(i => i.estado !== "pendente" && i.estado !== "baixando").length;
+    const emCurso = tarefa.itens.find(i => i.estado === "baixando");
+    const parcial = emCurso ? emCurso.percentual / 100 : 0;
+    const geral = Math.min(100, ((feitos + parcial) / total) * 100);
+    const concluido = tarefa.estado === "concluido";
+
+    pct.textContent = Math.round(geral) + "%";
+    pintaMedidor(geral, concluido && tarefa.falhas === 0);
+
+    if (concluido) {
+      onde.textContent = "Fila encerrada";
+    } else if (emCurso) {
+      onde.textContent = "Item " + tarefa.atual + " de " + total + ": " + (emCurso.titulo || emCurso.link);
+    } else {
+      onde.textContent = "Item " + Math.max(1, tarefa.atual) + " de " + total;
+    }
+
+    resumo.replaceChildren();
+    [["sucessos", "prontos"], ["falhas", "falhas"], ["pulados", "pulados"]].forEach(([chave, texto]) => {
+      const bloco = document.createElement("span");
+      const num = document.createElement("b");
+      num.textContent = String(tarefa[chave]);
+      bloco.append(num, document.createTextNode(" " + texto));
+      resumo.appendChild(bloco);
+    });
+
+    itens.replaceChildren(...tarefa.itens.map(linhaItem));
+
+    if (concluido) {
+      const falhou = tarefa.falhas > 0;
+      lampadaEm(falhou ? "erro" : "concluido",
+        falhou ? tarefa.falhas + " com falha" : "tudo pronto");
+      botao.disabled = false;
+      botao.textContent = "Baixar";
+      if (falhou) {
+        mostraAviso("Alguns links não baixaram. Veja o motivo na lista; se o YouTube mudou, atualize o yt-dlp com: pip install -U yt-dlp");
+      }
+    } else {
+      lampadaEm("rodando", "baixando " + tarefa.atual + "/" + total);
+    }
+  }
+
+  async function consulta(jobId) {
+    const resposta = await fetch("/status/" + encodeURIComponent(jobId));
+    const dados = await resposta.json();
+    if (!resposta.ok) throw new Error(dados.erro || "Não foi possível ler o progresso.");
+    desenha(dados);
+    if (dados.estado !== "concluido") {
+      timer = setTimeout(() => consulta(jobId).catch(falhou), 800);
+    }
+  }
+
+  function falhou(erro) {
+    lampadaEm("erro", "parado");
+    botao.disabled = false;
+    botao.textContent = "Baixar";
+    mostraAviso(erro.message || "Algo deu errado ao falar com o servidor.");
+  }
+
+  forma.addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+    limpaAviso();
+    if (timer) { clearTimeout(timer); timer = null; }
+
+    const links = campoLinks.value.trim();
+    if (!links) {
+      mostraAviso("Cole pelo menos um link do YouTube para começar.");
+      campoLinks.focus();
+      return;
+    }
+
+    const formato = forma.querySelector('input[name="formato"]:checked').value;
+    botao.disabled = true;
+    botao.textContent = "Baixando";
+    lampadaEm("rodando", "enviando");
+
+    try {
+      const resposta = await fetch("/baixar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ links, formato })
+      });
+      const dados = await resposta.json();
+      if (!resposta.ok) throw new Error(dados.erro || "O servidor recusou o pedido.");
+
+      fila.hidden = false;
+      onde.textContent = "Preparando a fila";
+      pct.textContent = "0%";
+      pintaMedidor(0, false);
+      resumo.replaceChildren();
+      itens.replaceChildren();
+      await consulta(dados.job_id);
+    } catch (erro) {
+      falhou(erro);
+    }
+  });
+})();
+</script>
+</body>
+</html>

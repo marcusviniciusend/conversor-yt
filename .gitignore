@@ -1,0 +1,26 @@
+# ambiente virtual
+venv/
+.venv/
+env/
+
+# cache do Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# mídia baixada
+*.mp3
+*.mp4
+*.webm
+*.m4a
+*.part
+*.ytdl
+
+# histórico do download_archive
+baixados.txt
+
+# sistema / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
